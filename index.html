@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人选·天选 - 每日反思日志</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 浮动装饰元素 -->
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+    
+    <!-- 浮动艺术字 -->
+    <div class="floating-text-container">
+        <span class="floating-art-text text-1">我</span>
+        <span class="floating-art-text text-2">爱</span>
+        <span class="floating-art-text text-3">周</span>
+        <span class="floating-art-text text-4">亚</span>
+        <span class="floating-art-text text-5">婷</span>
+    </div>
+    
+    <div class="app-container">
+        <!-- 登录页面 -->
+        <div id="login-page" class="page active">
+            <div class="login-card">
+                <h1 class="login-title">人选 · 天选</h1>
+                <input type="password" id="password-input" class="password-input" placeholder="请输入密码">
+                <button id="unlock-btn" class="unlock-btn">解锁</button>
+                <p class="login-hint">忘记密码将无法恢复数据</p>
+            </div>
+        </div>
+
+        <!-- 主页面 -->
+        <div id="main-page" class="page">
+            <div class="main-container">
+                <header class="header">
+                    <h1 class="app-title">人选 · 天选</h1>
+                    <p class="app-subtitle">每日反思日志</p>
+                </header>
+
+                <div class="date-selector">
+                    <input type="text" id="date-display" class="date-display" readonly>
+                    <button id="calendar-btn" class="calendar-icon">📅</button>
+                </div>
+
+                <!-- 情绪选择器 -->
+                <div class="mood-selector">
+                    <p class="mood-label">今天的心情</p>
+                    <div class="mood-options">
+                        <button class="mood-btn" data-mood="1" title="糟糕">😢</button>
+                        <button class="mood-btn" data-mood="2" title="不好">😟</button>
+                        <button class="mood-btn" data-mood="3" title="一般">😐</button>
+                        <button class="mood-btn" data-mood="4" title="不错">🙂</button>
+                        <button class="mood-btn" data-mood="5" title="很棒">😄</button>
+                    </div>
+                    <input type="hidden" id="selected-mood" value="">
+                </div>
+
+                <div class="questions-container">
+                    <div class="question-item">
+                        <div class="question-number">1</div>
+                        <div class="question-content">
+                            <label class="question-label">今天最起波澜的事情是什么？</label>
+                            <textarea class="question-textarea" placeholder="描述今天让你情绪波动最大的事件..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="question-item">
+                        <div class="question-number">2</div>
+                        <div class="question-content">
+                            <label class="question-label">当时我的第一反应是什么？</label>
+                            <textarea class="question-textarea" placeholder="回忆当时的即时反应和情绪..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="question-item">
+                        <div class="question-number">3</div>
+                        <div class="question-content">
+                            <label class="question-label">我其实是想得到什么？</label>
+                            <textarea class="question-textarea" placeholder="探索内心真正的期待和需求..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="question-item">
+                        <div class="question-number">4</div>
+                        <div class="question-content">
+                            <label class="question-label">我其实在害怕什么？</label>
+                            <textarea class="question-textarea" placeholder="挖掘深层的恐惧和担忧..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="question-item">
+                        <div class="question-number">5</div>
+                        <div class="question-content">
+                            <label class="question-label">我给自己找了什么理由？</label>
+                            <textarea class="question-textarea" placeholder="审视自己的合理化和借口..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="question-item">
+                        <div class="question-number">6</div>
+                        <div class="question-content">
+                            <label class="question-label">今天捞出来的主石头是什么？</label>
+                            <textarea class="question-textarea" placeholder="总结今天最重要的收获或领悟..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="question-item">
+                        <div class="question-number">7</div>
+                        <div class="question-content">
+                            <label class="question-label">如果明天再遇到同样的事，我该怎么做？</label>
+                            <textarea class="question-textarea" placeholder="制定未来的行动计划..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="action-btn primary">保存</button>
+                    <button class="action-btn">随机漫步</button>
+                    <button class="action-btn" id="open-calendar">日历</button>
+                    <button class="action-btn" id="mood-stats-btn">情绪统计</button>
+                    <button class="action-btn">导出</button>
+                    <button class="action-btn">导入</button>
+                    <button class="action-btn" id="logout-btn">密码</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 日历弹窗 -->
+        <div id="calendar-modal" class="modal">
+            <div class="modal-content calendar-container">
+                <div class="calendar-header">
+                    <span id="calendar-year"></span>
+                    <h2 id="calendar-title"></h2>
+                </div>
+                <div class="calendar-body">
+                    <div class="calendar-nav">
+                        <button id="prev-month">&lt;</button>
+                        <span id="current-month-year"></span>
+                        <button id="next-month">&gt;</button>
+                    </div>
+                    <div class="calendar-weekdays">
+                        <div>日</div>
+                        <div>一</div>
+                        <div>二</div>
+                        <div>三</div>
+                        <div>四</div>
+                        <div>五</div>
+                        <div>六</div>
+                    </div>
+                    <div id="calendar-days" class="calendar-days"></div>
+                </div>
+                <div class="calendar-footer">
+                    <button id="clear-date" class="calendar-btn">清除</button>
+                    <button id="cancel-calendar" class="calendar-btn">取消</button>
+                    <button id="set-date" class="calendar-btn">设置</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 随机漫步弹窗 -->
+        <div id="random-walk-modal" class="modal">
+            <div class="modal-content random-walk-container">
+                <div class="random-walk-header">
+                    <h2>🎲 随机漫步</h2>
+                    <p class="random-walk-subtitle">回顾过去的自己</p>
+                </div>
+                <div class="random-walk-body">
+                    <div class="random-walk-date" id="random-walk-date"></div>
+                    <div class="random-walk-entries" id="random-walk-entries">
+                        <!-- 动态生成的日记内容 -->
+                    </div>
+                </div>
+                <div class="random-walk-footer">
+                    <button id="random-walk-close" class="random-walk-btn">关闭</button>
+                    <button id="random-walk-again" class="random-walk-btn primary">再漫步一次</button>
+                    <button id="random-walk-jump" class="random-walk-btn">跳转到该日</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 情绪统计弹窗 -->
+        <div id="mood-stats-modal" class="modal">
+            <div class="modal-content mood-stats-container">
+                <div class="mood-stats-header">
+                    <h2>📊 情绪统计</h2>
+                    <p class="mood-stats-subtitle">了解你的心情变化</p>
+                </div>
+                <div class="mood-stats-body">
+                    <div class="mood-stats-summary">
+                        <div class="stat-card">
+                            <span class="stat-number" id="total-entries">0</span>
+                            <span class="stat-label">总记录数</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number" id="current-streak">0</span>
+                            <span class="stat-label">连续记录</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number" id="avg-mood">-</span>
+                            <span class="stat-label">平均心情</span>
+                        </div>
+                    </div>
+                    <div class="mood-distribution">
+                        <h3>情绪分布</h3>
+                        <div class="mood-bars" id="mood-bars">
+                            <!-- 动态生成的情绪条形图 -->
+                        </div>
+                    </div>
+                    <div class="mood-trend">
+                        <h3>最近7天趋势</h3>
+                        <div class="mood-trend-chart" id="mood-trend-chart">
+                            <!-- 动态生成的趋势图 -->
+                        </div>
+                    </div>
+                </div>
+                <div class="mood-stats-footer">
+                    <button id="mood-stats-close" class="mood-stats-btn">关闭</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 导出弹窗 -->
+        <div id="export-modal" class="modal">
+            <div class="modal-content data-container">
+                <div class="data-header">
+                    <h2>📤 导出日记</h2>
+                    <p class="data-subtitle">将所有日记导出为JSON文件</p>
+                </div>
+                <div class="data-body">
+                    <div class="data-info">
+                        <div class="data-stat">
+                            <span class="data-stat-label">日记总数：</span>
+                            <span class="data-stat-value" id="export-count">0</span>
+                        </div>
+                        <div class="data-stat">
+                            <span class="data-stat-label">导出时间：</span>
+                            <span class="data-stat-value" id="export-time"></span>
+                        </div>
+                    </div>
+                    <div class="data-preview" id="export-preview">
+                        <!-- 导出预览内容 -->
+                    </div>
+                </div>
+                <div class="data-footer">
+                    <button id="export-close" class="data-btn">取消</button>
+                    <button id="export-confirm" class="data-btn primary">确认导出</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 导入弹窗 -->
+        <div id="import-modal" class="modal">
+            <div class="modal-content data-container">
+                <div class="data-header">
+                    <h2>📥 导入日记</h2>
+                    <p class="data-subtitle">从JSON文件导入日记数据</p>
+                </div>
+                <div class="data-body">
+                    <div class="import-upload-area" id="import-upload-area">
+                        <div class="import-icon">📁</div>
+                        <p class="import-text">点击选择文件或拖拽文件到此处</p>
+                        <p class="import-hint">支持 .json 格式</p>
+                        <input type="file" id="import-file-input" accept=".json" hidden>
+                    </div>
+                    <div class="import-preview" id="import-preview" style="display: none;">
+                        <div class="data-info">
+                            <div class="data-stat">
+                                <span class="data-stat-label">日记数量：</span>
+                                <span class="data-stat-value" id="import-count">0</span>
+                            </div>
+                            <div class="data-stat">
+                                <span class="data-stat-label">导入方式：</span>
+                                <select id="import-mode" class="import-mode-select">
+                                    <option value="merge">合并导入（保留现有数据）</option>
+                                    <option value="overwrite">覆盖导入（替换现有数据）</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="data-preview" id="import-preview-content"></div>
+                    </div>
+                </div>
+                <div class="data-footer">
+                    <button id="import-close" class="data-btn">取消</button>
+                    <button id="import-confirm" class="data-btn primary" disabled>确认导入</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

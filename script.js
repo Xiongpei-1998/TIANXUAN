@@ -990,4 +990,218 @@ moodStatsModal.addEventListener('click', (e) => {
 });
 
 // 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    initFloatingElements();
+});
+
+// ==================== 浮动元素物理动画系统 ====================
+
+class FloatingElement {
+    constructor(element, container) {
+        this.element = element;
+        this.container = container;
+        this.rect = element.getBoundingClientRect();
+        
+        // 随机初始位置（避开中心区域）
+        const containerRect = container.getBoundingClientRect();
+        const centerX = containerRect.width / 2;
+        const centerY = containerRect.height / 2;
+        
+        // 随机选择象限，避开中心
+        let x, y;
+        const quadrant = Math.floor(Math.random() * 4);
+        switch(quadrant) {
+            case 0: // 左上
+                x = Math.random() * (centerX - 100);
+                y = Math.random() * (centerY - 100);
+                break;
+            case 1: // 右上
+                x = centerX + 100 + Math.random() * (centerX - 100);
+                y = Math.random() * (centerY - 100);
+                break;
+            case 2: // 左下
+                x = Math.random() * (centerX - 100);
+                y = centerY + 100 + Math.random() * (centerY - 100);
+                break;
+            case 3: // 右下
+                x = centerX + 100 + Math.random() * (centerX - 100);
+                y = centerY + 100 + Math.random() * (centerY - 100);
+                break;
+        }
+        
+        this.x = x;
+        this.y = y;
+        
+        // 随机速度（1-3像素/帧）
+        const speed = 1 + Math.random() * 2;
+        const angle = Math.random() * Math.PI * 2;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        
+        // 旋转
+        this.rotation = Math.random() * 360;
+        this.rotationSpeed = (Math.random() - 0.5) * 2;
+        
+        // 大小变化
+        this.scale = 0.8 + Math.random() * 0.4;
+        this.scaleSpeed = (Math.random() - 0.5) * 0.01;
+        
+        // 设置初始位置
+        this.updatePosition();
+    }
+    
+    updatePosition() {
+        this.element.style.left = this.x + 'px';
+        this.element.style.top = this.y + 'px';
+        this.element.style.transform = `rotate(${this.rotation}deg) scale(${this.scale})`;
+    }
+    
+    update(containerWidth, containerHeight) {
+        // 更新位置
+        this.x += this.vx;
+        this.y += this.vy;
+        
+        // 更新旋转
+        this.rotation += this.rotationSpeed;
+        
+        // 更新缩放
+        this.scale += this.scaleSpeed;
+        if (this.scale > 1.3 || this.scale < 0.7) {
+            this.scaleSpeed *= -1;
+        }
+        
+        // 获取元素尺寸
+        const width = this.element.offsetWidth;
+        const height = this.element.offsetHeight;
+        
+        // 边界碰撞检测和反弹
+        if (this.x <= 0) {
+            this.x = 0;
+            this.vx = Math.abs(this.vx);
+        } else if (this.x + width >= containerWidth) {
+            this.x = containerWidth - width;
+            this.vx = -Math.abs(this.vx);
+        }
+        
+        if (this.y <= 0) {
+            this.y = 0;
+            this.vy = Math.abs(this.vy);
+        } else if (this.y + height >= containerHeight) {
+            this.y = containerHeight - height;
+            this.vy = -Math.abs(this.vy);
+        }
+        
+        this.updatePosition();
+    }
+    
+    getCenter() {
+        const width = this.element.offsetWidth;
+        const height = this.element.offsetHeight;
+        return {
+            x: this.x + width / 2,
+            y: this.y + height / 2
+        };
+    }
+    
+    getRadius() {
+        return Math.max(this.element.offsetWidth, this.element.offsetHeight) / 2;
+    }
+    
+    // 碰撞后的反弹
+    bounce(other) {
+        const center1 = this.getCenter();
+        const center2 = other.getCenter();
+        
+        // 碰撞角度
+        const dx = center2.x - center1.x;
+        const dy = center2.y - center1.y;
+        const angle = Math.atan2(dy, dx);
+        
+        // 交换速度分量（简化弹性碰撞）
+        const speed1 = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+        const speed2 = Math.sqrt(other.vx * other.vx + other.vy * other.vy);
+        
+        // 添加一些随机性使运动更自然
+        const randomFactor = 0.9 + Math.random() * 0.2;
+        
+        this.vx = -Math.cos(angle) * speed2 * randomFactor;
+        this.vy = -Math.sin(angle) * speed2 * randomFactor;
+        other.vx = Math.cos(angle) * speed1 * randomFactor;
+        other.vy = Math.sin(angle) * speed1 * randomFactor;
+        
+        // 分离重叠的元素
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const minDistance = this.getRadius() + other.getRadius();
+        if (distance < minDistance && distance > 0) {
+            const overlap = minDistance - distance;
+            const separationX = (dx / distance) * overlap * 0.5;
+            const separationY = (dy / distance) * overlap * 0.5;
+            
+            this.x -= separationX;
+            this.y -= separationY;
+            other.x += separationX;
+            other.y += separationY;
+        }
+    }
+}
+
+// 初始化浮动元素
+function initFloatingElements() {
+    const container = document.getElementById('floating-container');
+    if (!container) return;
+    
+    const elements = container.querySelectorAll('.floating-item');
+    const floatingElements = [];
+    
+    // 创建浮动元素对象
+    elements.forEach(el => {
+        floatingElements.push(new FloatingElement(el, container));
+    });
+    
+    // 动画循环
+    let lastTime = 0;
+    const frameInterval = 1000 / 60; // 60fps
+    
+    function animate(currentTime) {
+        const deltaTime = currentTime - lastTime;
+        
+        if (deltaTime >= frameInterval) {
+            lastTime = currentTime - (deltaTime % frameInterval);
+            
+            const containerRect = container.getBoundingClientRect();
+            const width = containerRect.width;
+            const height = containerRect.height;
+            
+            // 更新所有元素位置
+            floatingElements.forEach(el => {
+                el.update(width, height);
+            });
+            
+            // 检测元素之间的碰撞
+            for (let i = 0; i < floatingElements.length; i++) {
+                for (let j = i + 1; j < floatingElements.length; j++) {
+                    const el1 = floatingElements[i];
+                    const el2 = floatingElements[j];
+                    
+                    const center1 = el1.getCenter();
+                    const center2 = el2.getCenter();
+                    const distance = Math.sqrt(
+                        Math.pow(center2.x - center1.x, 2) + 
+                        Math.pow(center2.y - center1.y, 2)
+                    );
+                    
+                    const minDistance = el1.getRadius() + el2.getRadius();
+                    
+                    if (distance < minDistance * 0.8) { // 0.8使碰撞更敏感
+                        el1.bounce(el2);
+                    }
+                }
+            }
+        }
+        
+        requestAnimationFrame(animate);
+    }
+    
+    requestAnimationFrame(animate);
+}

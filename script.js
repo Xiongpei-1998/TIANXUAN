@@ -1,7 +1,7 @@
 // 全局状态
-let currentDate = new Date(2026, 2, 10); // 2026 年 3 月 10 日
-let selectedDate = new Date(2026, 2, 10);
-let calendarCurrentMonth = new Date(2026, 2, 1);
+let currentDate = new Date();
+let selectedDate = new Date();
+let calendarCurrentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
 // DOM 元素
 const loginPage = document.getElementById('login-page');
@@ -21,7 +21,6 @@ const prevMonthBtn = document.getElementById('prev-month');
 const nextMonthBtn = document.getElementById('next-month');
 const clearDateBtn = document.getElementById('clear-date');
 const cancelCalendarBtn = document.getElementById('cancel-calendar');
-const setDateBtn = document.getElementById('set-date');
 const textareas = document.querySelectorAll('.question-textarea');
 
 // 情绪追踪相关元素
@@ -93,7 +92,6 @@ function setupEventListeners() {
     nextMonthBtn.addEventListener('click', nextMonth);
     clearDateBtn.addEventListener('click', clearDate);
     cancelCalendarBtn.addEventListener('click', closeCalendar);
-    setDateBtn.addEventListener('click', confirmDate);
 
     // 点击弹窗外部关闭
     calendarModal.addEventListener('click', (e) => {
@@ -346,18 +344,97 @@ function confirmDate() {
 }
 
 // 保存功能
-document.querySelector('.action-btn.primary').addEventListener('click', function() {
+document.querySelector('.action-btn.primary').addEventListener('click', async function() {
     const btn = this;
     btn.classList.add('saving');
     saveCurrentDateDataWithMood();
     
-    // 移除动画类以便下次触发
+    const config = getGistConfig();
+    if (config.token) {
+        btn.textContent = '同步中...';
+        try {
+            await autoSyncToGist(config);
+            alert('日志已保存并同步到云端！');
+        } catch (error) {
+            alert('日志已保存！\n云端同步失败: ' + error.message);
+        }
+        btn.textContent = '保存';
+    } else {
+        alert('日志已保存！');
+    }
+    
     setTimeout(() => {
         btn.classList.remove('saving');
     }, 300);
-    
-    alert('日志已保存！');
 });
+
+async function autoSyncToGist(config) {
+    const { token, gistId } = config;
+    
+    const entries = getAllJournalEntries();
+    if (entries.length === 0) return;
+    
+    const exportData = {
+        version: '1.0',
+        exportTime: new Date().toISOString(),
+        appName: '人选·天选',
+        entries: entries.map(entry => ({
+            date: entry.dateKey,
+            data: entry.data,
+            mood: entry.mood
+        }))
+    };
+    
+    let response;
+    if (gistId) {
+        response = await fetch(`https://api.github.com/gists/${gistId}`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify({
+                files: {
+                    [GIST_FILENAME]: {
+                        content: JSON.stringify(exportData, null, 2)
+                    }
+                }
+            })
+        });
+    } else {
+        response = await fetch('https://api.github.com/gists', {
+            method: 'POST',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify({
+                description: '人选·天选 日记数据备份',
+                public: false,
+                files: {
+                    [GIST_FILENAME]: {
+                        content: JSON.stringify(exportData, null, 2)
+                    }
+                }
+            })
+        });
+    }
+    
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || '同步失败');
+    }
+    
+    const result = await response.json();
+    
+    if (!gistId && result.id) {
+        saveGistConfig(token, result.id);
+    }
+    
+    localStorage.setItem('last_sync_time', new Date().toISOString());
+}
 
 // 随机漫步功能
 document.querySelectorAll('.action-btn')[1].addEventListener('click', openRandomWalk);
@@ -408,13 +485,14 @@ function getAllJournalEntries() {
         if (key && key.startsWith('journal_')) {
             const dateKey = key.replace('journal_', '');
             const data = JSON.parse(localStorage.getItem(key));
-            // 检查是否有实际内容
-            const hasContent = data && data.some(item => item && item.trim() !== '');
-            if (hasContent) {
+            const answers = data.answers || data;
+            const hasContent = answers && Array.isArray(answers) && answers.some(item => item && item.trim() !== '');
+            if (hasContent || (data && data.mood)) {
                 entries.push({
                     dateKey: dateKey,
                     date: parseDateKey(dateKey),
-                    data: data
+                    data: answers,
+                    mood: data.mood || ''
                 });
             }
         }
@@ -519,10 +597,10 @@ randomWalkModal.addEventListener('click', (e) => {
 });
 
 // 导出功能
-document.querySelectorAll('.action-btn')[3].addEventListener('click', openExport);
+document.querySelectorAll('.action-btn')[4].addEventListener('click', openExport);
 
 // 导入功能
-document.querySelectorAll('.action-btn')[4].addEventListener('click', openImport);
+document.querySelectorAll('.action-btn')[5].addEventListener('click', openImport);
 
 // 导出导入相关DOM元素
 const exportModal = document.getElementById('export-modal');
@@ -599,7 +677,8 @@ function confirmExport() {
         appName: '人选·天选',
         entries: entries.map(entry => ({
             date: entry.dateKey,
-            data: entry.data
+            data: entry.data,
+            mood: entry.mood
         }))
     };
     
@@ -687,11 +766,11 @@ function processImportFile(file) {
             }
             
             // 过滤有效条目
-            const validEntries = data.entries.filter(entry => 
-                entry.date && 
-                Array.isArray(entry.data) &&
-                entry.data.some(item => item && item.trim() !== '')
-            );
+            const validEntries = data.entries.filter(entry => {
+                const hasAnswers = entry.data && Array.isArray(entry.data) && entry.data.some(item => item && item.trim() !== '');
+                const hasMood = entry.mood && entry.mood.trim() !== '';
+                return entry.date && (hasAnswers || hasMood);
+            });
             
             if (validEntries.length === 0) {
                 alert('文件中没有有效的日记数据');
@@ -711,11 +790,12 @@ function processImportFile(file) {
             validEntries.slice(0, 5).forEach(entry => {
                 const date = parseDateKey(entry.date);
                 const dateStr = formatDate(date);
-                const contentCount = entry.data.filter(item => item && item.trim() !== '').length;
+                const contentCount = (entry.data || []).filter(item => item && item.trim() !== '').length;
+                const moodEmoji = entry.mood ? ['', '😢', '😟', '😐', '🙂', '😄'][entry.mood] || '' : '';
                 previewHTML += `
                     <div class="import-preview-item">
                         <span class="import-preview-date">${dateStr}</span>
-                        <span class="import-preview-count">${contentCount} 个回答</span>
+                        <span class="import-preview-count">${contentCount} 个回答 ${moodEmoji}</span>
                     </div>
                 `;
             });
@@ -751,14 +831,21 @@ function confirmImport() {
     currentImportData.forEach(entry => {
         const key = `journal_${entry.date}`;
         
+        // 构建完整的数据对象
+        const saveData = {
+            answers: entry.data,
+            mood: entry.mood || '',
+            timestamp: new Date().toISOString()
+        };
+        
         if (mode === 'overwrite') {
             // 覆盖模式：直接写入
-            localStorage.setItem(key, JSON.stringify(entry.data));
+            localStorage.setItem(key, JSON.stringify(saveData));
             importedCount++;
         } else {
             // 合并模式：只有不存在时才写入
             if (!localStorage.getItem(key)) {
-                localStorage.setItem(key, JSON.stringify(entry.data));
+                localStorage.setItem(key, JSON.stringify(saveData));
                 importedCount++;
             } else {
                 skippedCount++;
@@ -1208,3 +1295,246 @@ function initFloatingElements() {
     
     requestAnimationFrame(animate);
 }
+
+// ==================== GitHub Gist 云同步系统 ====================
+
+const GIST_CONFIG_KEY = 'gist_sync_config';
+const GIST_FILENAME = 'tianxuan_journal_data.json';
+
+const cloudSyncModal = document.getElementById('cloud-sync-modal');
+const cloudSyncBtn = document.getElementById('cloud-sync-btn');
+const gistTokenInput = document.getElementById('gist-token-input');
+const gistIdInput = document.getElementById('gist-id-input');
+const syncStatusSection = document.getElementById('sync-status-section');
+const syncStatusText = document.getElementById('sync-status-text');
+const lastSyncTime = document.getElementById('last-sync-time');
+const localEntriesCount = document.getElementById('local-entries-count');
+const saveSyncConfigBtn = document.getElementById('save-sync-config');
+const uploadToGistBtn = document.getElementById('upload-to-gist');
+const downloadFromGistBtn = document.getElementById('download-from-gist');
+const cloudSyncCloseBtn = document.getElementById('cloud-sync-close');
+
+function getGistConfig() {
+    const config = localStorage.getItem(GIST_CONFIG_KEY);
+    return config ? JSON.parse(config) : { token: '', gistId: '' };
+}
+
+function saveGistConfig(token, gistId) {
+    localStorage.setItem(GIST_CONFIG_KEY, JSON.stringify({ token, gistId }));
+}
+
+function openCloudSync() {
+    const config = getGistConfig();
+    gistTokenInput.value = config.token || '';
+    gistIdInput.value = config.gistId || '';
+    
+    const entries = getAllJournalEntries();
+    localEntriesCount.textContent = entries.length;
+    
+    if (config.token) {
+        syncStatusSection.style.display = 'block';
+        syncStatusText.textContent = config.gistId ? '已配置' : '待创建 Gist';
+        const lastSync = localStorage.getItem('last_sync_time');
+        lastSyncTime.textContent = lastSync ? new Date(lastSync).toLocaleString('zh-CN') : '-';
+    } else {
+        syncStatusSection.style.display = 'none';
+    }
+    
+    cloudSyncModal.classList.add('active');
+}
+
+function closeCloudSync() {
+    cloudSyncModal.classList.remove('active');
+}
+
+async function uploadToGist() {
+    const token = gistTokenInput.value.trim();
+    const gistId = gistIdInput.value.trim();
+    
+    if (!token) {
+        alert('请先输入 GitHub Token');
+        return;
+    }
+    
+    const entries = getAllJournalEntries();
+    if (entries.length === 0) {
+        alert('没有数据可上传');
+        return;
+    }
+    
+    const exportData = {
+        version: '1.0',
+        exportTime: new Date().toISOString(),
+        appName: '人选·天选',
+        entries: entries.map(entry => ({
+            date: entry.dateKey,
+            data: entry.data,
+            mood: entry.mood
+        }))
+    };
+    
+    try {
+        uploadToGistBtn.disabled = true;
+        uploadToGistBtn.textContent = '上传中...';
+        
+        let response;
+        if (gistId) {
+            response = await fetch(`https://api.github.com/gists/${gistId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/vnd.github.v3+json'
+                },
+                body: JSON.stringify({
+                    files: {
+                        [GIST_FILENAME]: {
+                            content: JSON.stringify(exportData, null, 2)
+                        }
+                    }
+                })
+            });
+        } else {
+            response = await fetch('https://api.github.com/gists', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/vnd.github.v3+json'
+                },
+                body: JSON.stringify({
+                    description: '人选·天选 日记数据备份',
+                    public: false,
+                    files: {
+                        [GIST_FILENAME]: {
+                            content: JSON.stringify(exportData, null, 2)
+                        }
+                    }
+                })
+            });
+        }
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || '上传失败');
+        }
+        
+        const result = await response.json();
+        
+        if (!gistId && result.id) {
+            gistIdInput.value = result.id;
+            saveGistConfig(token, result.id);
+        }
+        
+        localStorage.setItem('last_sync_time', new Date().toISOString());
+        lastSyncTime.textContent = new Date().toLocaleString('zh-CN');
+        syncStatusText.textContent = '已同步';
+        syncStatusSection.style.display = 'block';
+        
+        alert(`上传成功！共 ${entries.length} 条日记`);
+        
+    } catch (error) {
+        alert('上传失败: ' + error.message);
+    } finally {
+        uploadToGistBtn.disabled = false;
+        uploadToGistBtn.textContent = '上传到云端';
+    }
+}
+
+async function downloadFromGist() {
+    const token = gistTokenInput.value.trim();
+    const gistId = gistIdInput.value.trim();
+    
+    if (!token || !gistId) {
+        alert('请先配置 Token 和 Gist ID');
+        return;
+    }
+    
+    if (!confirm('从云端下载将覆盖本地数据，确定继续吗？\n建议先导出本地数据备份。')) {
+        return;
+    }
+    
+    try {
+        downloadFromGistBtn.disabled = true;
+        downloadFromGistBtn.textContent = '下载中...';
+        
+        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+            headers: {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || '下载失败');
+        }
+        
+        const gist = await response.json();
+        const file = gist.files[GIST_FILENAME];
+        
+        if (!file) {
+            throw new Error('Gist 中找不到数据文件');
+        }
+        
+        const data = JSON.parse(file.content);
+        
+        if (!data.entries || !Array.isArray(data.entries)) {
+            throw new Error('数据格式不正确');
+        }
+        
+        let importedCount = 0;
+        data.entries.forEach(entry => {
+            const key = `journal_${entry.date}`;
+            const saveData = {
+                answers: entry.data,
+                mood: entry.mood || '',
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem(key, JSON.stringify(saveData));
+            importedCount++;
+        });
+        
+        localStorage.setItem('last_sync_time', new Date().toISOString());
+        lastSyncTime.textContent = new Date().toLocaleString('zh-CN');
+        syncStatusText.textContent = '已同步';
+        
+        const entries = getAllJournalEntries();
+        localEntriesCount.textContent = entries.length;
+        
+        loadCurrentDateDataWithMood();
+        
+        alert(`下载成功！共导入 ${importedCount} 条日记`);
+        
+    } catch (error) {
+        alert('下载失败: ' + error.message);
+    } finally {
+        downloadFromGistBtn.disabled = false;
+        downloadFromGistBtn.textContent = '从云端下载';
+    }
+}
+
+cloudSyncBtn.addEventListener('click', openCloudSync);
+cloudSyncCloseBtn.addEventListener('click', closeCloudSync);
+
+cloudSyncModal.addEventListener('click', (e) => {
+    if (e.target === cloudSyncModal) {
+        closeCloudSync();
+    }
+});
+
+saveSyncConfigBtn.addEventListener('click', () => {
+    const token = gistTokenInput.value.trim();
+    const gistId = gistIdInput.value.trim();
+    saveGistConfig(token, gistId);
+    
+    if (token) {
+        syncStatusSection.style.display = 'block';
+        syncStatusText.textContent = gistId ? '已配置' : '待创建 Gist';
+    }
+    
+    alert('配置已保存');
+});
+
+uploadToGistBtn.addEventListener('click', uploadToGist);
+downloadFromGistBtn.addEventListener('click', downloadFromGist);

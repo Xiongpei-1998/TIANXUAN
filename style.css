@@ -1041,6 +1041,12 @@ body::before {
     flex: 1;
 }
 
+.random-walk-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
 .random-walk-date {
     text-align: center;
     font-size: 18px;
@@ -1908,4 +1914,170 @@ body::before {
     body {
         overflow-x: hidden;
     }
+}
+
+/* 云同步弹窗样式 */
+.sync-config-section {
+    margin-bottom: 20px;
+}
+
+.sync-config-item {
+    margin-bottom: 15px;
+}
+
+.sync-config-label {
+    display: block;
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.sync-config-input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    font-size: 14px;
+    background: white;
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.05),
+        0 0 0 1px rgba(232, 197, 208, 0.3) inset;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.sync-config-input:hover {
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(217, 138, 158, 0.4) inset;
+}
+
+.sync-config-input:focus {
+    border-color: #d98a9e;
+    box-shadow: 
+        0 0 0 3px rgba(217, 138, 158, 0.2),
+        0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.sync-config-hint {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 5px;
+}
+
+.sync-status-section {
+    background: rgba(217, 138, 158, 0.08);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.sync-status-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sync-status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sync-status-label {
+    font-size: 13px;
+    color: #888;
+}
+
+.sync-status-value {
+    font-size: 13px;
+    color: #d98a9e;
+    font-weight: 500;
+}
+
+.sync-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.sync-action-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 12px 15px;
+    border: 1px solid #e8c5d0;
+    border-radius: 20px;
+    background: white;
+    color: #666;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.sync-action-btn:hover {
+    border-color: #d98a9e;
+    color: #d98a9e;
+}
+
+.sync-action-btn.primary {
+    background: linear-gradient(135deg, #e0889e 0%, #d97a8f 100%);
+    color: white;
+    border: none;
+}
+
+.sync-action-btn.primary:hover {
+    box-shadow: 0 4px 15px rgba(224, 136, 158, 0.3);
+}
+
+.sync-action-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.sync-help {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 12px;
+    padding: 15px;
+}
+
+.sync-help details {
+    cursor: pointer;
+}
+
+.sync-help summary {
+    font-size: 13px;
+    color: #888;
+    font-weight: 500;
+    margin-bottom: 10px;
+}
+
+.sync-help ol {
+    margin: 10px 0 0 20px;
+    padding: 0;
+}
+
+.sync-help li {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.sync-help a {
+    color: #d98a9e;
+    text-decoration: none;
+}
+
+.sync-help a:hover {
+    text-decoration: underline;
+}
+
+.sync-help code {
+    background: rgba(217, 138, 158, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #d98a9e;
 }

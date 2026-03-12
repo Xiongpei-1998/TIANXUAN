@@ -146,6 +146,7 @@
                     <button class="action-btn">随机漫步</button>
                     <button class="action-btn" id="open-calendar">日历</button>
                     <button class="action-btn" id="mood-stats-btn">情绪统计</button>
+                    <button class="action-btn" id="cloud-sync-btn">云同步</button>
                     <button class="action-btn">导出</button>
                     <button class="action-btn">导入</button>
                     <button class="action-btn" id="logout-btn">密码</button>
@@ -180,7 +181,6 @@
                 <div class="calendar-footer">
                     <button id="clear-date" class="calendar-btn">清除</button>
                     <button id="cancel-calendar" class="calendar-btn">取消</button>
-                    <button id="set-date" class="calendar-btn">设置</button>
                 </div>
             </div>
         </div>
@@ -310,6 +310,65 @@
                 <div class="data-footer">
                     <button id="import-close" class="data-btn">取消</button>
                     <button id="import-confirm" class="data-btn primary" disabled>确认导入</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 云同步弹窗 -->
+        <div id="cloud-sync-modal" class="modal">
+            <div class="modal-content data-container">
+                <div class="data-header">
+                    <h2>☁️ 云同步设置</h2>
+                    <p class="data-subtitle">使用 GitHub Gist 同步数据</p>
+                </div>
+                <div class="data-body">
+                    <div class="sync-config-section">
+                        <div class="sync-config-item">
+                            <label class="sync-config-label">GitHub Token</label>
+                            <input type="password" id="gist-token-input" class="sync-config-input" placeholder="ghp_xxxxxxxxxxxx">
+                            <p class="sync-config-hint">需要 gist 权限的 Personal Access Token</p>
+                        </div>
+                        <div class="sync-config-item">
+                            <label class="sync-config-label">Gist ID（可选）</label>
+                            <input type="text" id="gist-id-input" class="sync-config-input" placeholder="首次同步会自动创建">
+                            <p class="sync-config-hint">留空则自动创建新的 Gist</p>
+                        </div>
+                    </div>
+                    <div class="sync-status-section" id="sync-status-section" style="display: none;">
+                        <div class="sync-status-info">
+                            <div class="sync-status-item">
+                                <span class="sync-status-label">同步状态：</span>
+                                <span class="sync-status-value" id="sync-status-text">未配置</span>
+                            </div>
+                            <div class="sync-status-item">
+                                <span class="sync-status-label">上次同步：</span>
+                                <span class="sync-status-value" id="last-sync-time">-</span>
+                            </div>
+                            <div class="sync-status-item">
+                                <span class="sync-status-label">本地条目：</span>
+                                <span class="sync-status-value" id="local-entries-count">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sync-actions">
+                        <button id="save-sync-config" class="sync-action-btn">保存配置</button>
+                        <button id="upload-to-gist" class="sync-action-btn primary">上传到云端</button>
+                        <button id="download-from-gist" class="sync-action-btn">从云端下载</button>
+                    </div>
+                    <div class="sync-help">
+                        <details>
+                            <summary>如何获取 GitHub Token？</summary>
+                            <ol>
+                                <li>访问 <a href="https://github.com/settings/tokens" target="_blank">GitHub Token 设置</a></li>
+                                <li>点击 "Generate new token (classic)"</li>
+                                <li>填写备注名称，勾选 <code>gist</code> 权限</li>
+                                <li>点击 "Generate token" 并复制生成的 Token</li>
+                            </ol>
+                        </details>
+                    </div>
+                </div>
+                <div class="data-footer">
+                    <button id="cloud-sync-close" class="data-btn">关闭</button>
                 </div>
             </div>
         </div>

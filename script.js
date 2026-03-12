@@ -992,7 +992,10 @@ moodStatsModal.addEventListener('click', (e) => {
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
     init();
-    initFloatingElements();
+    // 仅在非移动端启用浮动动画
+    if (window.innerWidth > 768) {
+        initFloatingElements();
+    }
 });
 
 // ==================== 浮动元素物理动画系统 ====================
